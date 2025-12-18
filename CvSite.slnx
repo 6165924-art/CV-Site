@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="CvSite.Api/CvSite.Api.csproj" />
+  <Project Path="CvSite.Service/CvSite.Service.csproj" />
+</Solution>
