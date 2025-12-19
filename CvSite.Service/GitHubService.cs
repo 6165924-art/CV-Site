@@ -69,19 +69,38 @@ namespace CvSite.Service
             {
                 return Enumerable.Empty<RepositoryDto>();
             }
-            
+
             var unauthenticatedClient = new GitHubClient(new ProductHeaderValue("CvSite"));
             var searchRequest = new SearchRepositoriesRequest(finalQuery);
-            var searchResult = await unauthenticatedClient.Search.SearchRepo(searchRequest);
 
-            return searchResult.Items.Select(repo => new RepositoryDto
+            SearchRepositoryResult searchResult;
+            try
             {
-                Name = repo.Name,
-                Url = repo.HtmlUrl,
-                HomepageUrl = repo.Homepage,
-                LastPush = repo.PushedAt ?? repo.UpdatedAt,
-                StargazersCount = repo.StargazersCount,
-            }).ToList();
+                searchResult = await unauthenticatedClient.Search.SearchRepo(searchRequest);
+            }
+            catch (ApiValidationException)
+            {
+                // אם יש שגיאה בבנייה - תחזיר מערך ריק
+                return Enumerable.Empty<RepositoryDto>();
+            }
+
+            var result = new List<RepositoryDto>();
+            foreach (var repo in searchResult.Items)
+            {
+                var languages = await _gitHubClient.Repository.GetAllLanguages(repo.Id);
+
+                result.Add(new RepositoryDto
+                {
+                    Name = repo.Name,
+                    Url = repo.HtmlUrl,
+                    HomepageUrl = repo.Homepage,
+                    LastPush = repo.PushedAt ?? repo.UpdatedAt,
+                    StargazersCount = repo.StargazersCount,
+                    Languages = languages.Select(l => l.Name).ToList()
+                });
+            }
+
+            return result;
         }
     }
 }
